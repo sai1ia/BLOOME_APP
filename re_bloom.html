@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RE:BLOOM — 업사이클링 화환 앱 프로토타입</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts & Pretendard -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            forest: '#1B3022',
+            forestLight: '#284532',
+            oatmeal: '#F7F4EF',
+            oatmealDark: '#ECE6DC',
+            charcoal: '#2B2B2B',
+            terracotta: '#D46A4C',
+            terracottaHover: '#BF583B',
+            mustard: '#E9B44C',
+            lavender: '#8E839B',
+          },
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            serif: ['"Cormorant Garamond"', '"Gowun Batang"', 'serif'],
+            batang: ['"Gowun Batang"', 'serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* 커스텀 스크롤바 숨김 처리 (모바일 앱 뷰 최적화) */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* 패브릭 텍스처 미세 패턴 */
+    .fabric-texture {
+      background-image: radial-gradient(rgba(27, 48, 34, 0.06) 1px, transparent 0);
+      background-size: 12px 12px;
+    }
+
+    /* 부드러운 화면 전환 애니메이션 */
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .animate-screen {
+      animation: fadeSlideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* 리본 물결 그림자 */
+    .ribbon-shadow {
+      box-shadow: 0 8px 20px -4px rgba(27, 48, 34, 0.18);
+    }
+  </style>
+</head>
+<body class="bg-[#E5E0D8] min-h-screen flex flex-col items-center justify-center p-2 sm:p-6 font-sans text-charcoal select-none">
+
+  <!-- 상단 프로토타입 가이드 바 (데스크톱용) -->
+  <div class="hidden md:flex items-center gap-3 mb-3 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur text-xs text-charcoal/80 shadow-sm border border-forest/10">
+    <span class="w-2 h-2 rounded-full bg-terracotta animate-pulse"></span>
+    <span class="font-semibold text-forest">RE:BLOOM Interactive Prototype</span>
+    <span class="text-charcoal/40">|</span>
+    <span>슬라이더 드래그, 5단계 주문 커스텀, QR 스토리 아카이브를 직접 클릭해 보세요.</span>
+  </div>
+
+  <!-- 모바일 디바이스 프레임 (390 x 844px) -->
+  <div id="phone-frame" class="relative w-full max-w-[390px] h-[844px] max-h-[92vh] bg-oatmeal rounded-[44px] shadow-[0_25px_70px_-15px_rgba(27,48,34,0.35)] border-[10px] border-[#1F2421] overflow-hidden flex flex-col">
+
+    <!-- 상단 노치 & 상태바 -->
+    <div class="relative z-30 bg-oatmeal px-6 pt-3 pb-2 flex items-center justify-between text-[11px] font-semibold text-charcoal shrink-0">
+      <span>9:41</span>
+      <!-- 다이내믹 아일랜드 스타일 노치 -->
+      <div class="w-24 h-5 bg-[#1F2421] rounded-full mx-auto"></div>
+      <div class="flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C7.46 3 3.34 4.78.29 7.67c-.18.18-.29.43-.29.71 0 .28.11.53.29.71l11 11c.39.39 1.02.39 1.41 0l11-11c.18-.18.29-.43.29-.71 0-.28-.11-.53-.29-.71C20.66 4.78 16.54 3 12 3z"/></svg>
+        <div class="w-5 h-2.5 border border-charcoal rounded-[3px] p-[1px] flex items-center">
+          <div class="w-full h-full bg-charcoal rounded-[1px]"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 메인 앱 뷰포트 컨테이너 -->
+    <main id="app-viewport" class="relative flex-1 overflow-y-auto no-scrollbar bg-oatmeal pb-24">
+      <!-- 동적 화면이 여기에 렌더링됩니다 -->
+    </main>
+
+    <!-- 하단 탭 네비게이션 바 (4개 탭) -->
+    <nav id="bottom-nav" class="absolute bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-forest/10 px-4 pt-2 pb-6 flex items-center justify-around">
+      <button onclick="switchTab('home')" data-tab="home" class="nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-colors text-forest">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span class="text-[10px] font-semibold">홈</span>
+      </button>
+      <button onclick="switchTab('create')" data-tab="create" class="nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-colors text-charcoal/45 hover:text-forest">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        <span class="text-[10px] font-semibold">제작하기</span>
+      </button>
+      <button onclick="switchTab('myloop')" data-tab="myloop" class="nav-btn relative flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-colors text-charcoal/45 hover:text-forest">
+        <span class="absolute top-1 right-2.5 w-1.5 h-1.5 rounded-full bg-terracotta"></span>
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 6v6l4 2"/></svg>
+        <span class="text-[10px] font-semibold">내 화환</span>
+      </button>
+      <button onclick="switchTab('my')" data-tab="my" class="nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-colors text-charcoal/45 hover:text-forest">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="text-[10px] font-semibold">마이</span>
+      </button>
+    </nav>
+
+    <!-- QR 디지털 스토리 아카이브 모달 (바텀 시트) -->
+    <div id="qr-modal" class="hidden absolute inset-0 z-40 bg-black/50 backdrop-blur-[2px] flex flex-col justify-end">
+      <div id="qr-modal-content" class="bg-oatmeal rounded-t-[32px] max-h-[88%] overflow-y-auto no-scrollbar p-6 shadow-2xl border-t border-forest/10 animate-screen">
+        <!-- 모달 내부 콘텐츠 동적 삽입 -->
+      </div>
+    </div>
+
+    <!-- 토스트 메시지 박스 (alert 대체) -->
+    <div id="toast-box" class="pointer-events-none opacity-0 transition-all duration-300 absolute top-14 inset-x-5 z-50 bg-forest text-oatmeal text-xs font-medium px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2.5">
+      <span class="w-2 h-2 rounded-full bg-mustard shrink-0"></span>
+      <span id="toast-text">알림 메시지</span>
+    </div>
+
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. 앱 상태 관리 (State Management) & 샘플 데이터
+    // =========================================================================
+    const sampleStories = [
+      {
+        id: 'ORD-20261113-01',
+        badge: '개업·이전',
+        badgeColor: 'bg-forest text-oatmeal',
+        title: "연희동 독립서점 '종이의 숲' 개업 축하 리스",
+        shape: '벽걸이 리스형',
+        garments: '데님 자켓 1벌, 린넨 셔츠 1벌',
+        details: ['데님 황동 단추 4개 보존', '셔츠 소매 자수 이니셜 포인트'],
+        ribbonMsg: '당신의 첫 페이지를 응원해',
+        ribbonSender: '10년 지기 친구들이',
+        story: '“20살 겨울, 함께 책방을 꿈꾸며 입었던 자켓과 셔츠입니다. 이제 진짜 책방 주인이 된 너의 공간 한켠에서 계속 숨 쉬길 바라며.”',
+        remake: '행사 종료 1개월 후 수거 → 스트링 파우치 2개 제작',
+        date: '2026.11.20',
+        themeBg: '#E6ECE8',
+        accentHex: '#1B3022',
+        flowerType: 'denim'
+      },
+      {
+        id: 'ORD-20261108-04',
+        badge: '졸업·퇴임',
+        badgeColor: 'bg-terracotta text-white',
+        title: '김철수 부장님 정년퇴임 기념 3단 화환',
+        shape: '3단 스탠드형',
+        garments: '네이비 작업복 2벌, 넥타이 2개',
+        details: ['왼쪽 가슴 회사 로고 와펜 보존', '작업복 지퍼 디테일 활용'],
+        ribbonMsg: '30년의 땀방울, 이제는 꽃길만 걸으세요',
+        ribbonSender: '사랑하는 가족 일동',
+        story: '“가족을 위해 매일 새벽 여미셨던 아버지의 작업복과 넥타이입니다. 고단했던 시간들이 오늘 가장 화려한 꽃으로 피어났습니다. 존경합니다.”',
+        remake: '행사 당일 저녁 수거 → 압화 패브릭 액자 1점 + 키링 3개',
+        date: '2026.11.15',
+        themeBg: '#F4E7E1',
+        accentHex: '#D46A4C',
+        flowerType: 'workwear'
+      },
+      {
+        id: 'ORD-20261102-09',
+        badge: '추모·위로',
+        badgeColor: 'bg-lavender text-white',
+        title: '할머니의 꽃무늬 이불로 만든 추모 오브제',
+        shape: '탁상용 오브제형',
+        garments: '면 100% 빈티지 꽃무늬 홑이불 1채',
+        details: ['이불 가장자리 레이스 테두리 보존', '전체 꽃잎 수작업 재단'],
+        ribbonMsg: '따뜻했던 품을 영원히 기억하겠습니다',
+        ribbonSender: '손녀 올림',
+        story: '“방학마다 내려가면 늘 덮어주시던 할머니의 여름 이불입니다. 포근했던 그 온기를 시들지 않는 꽃으로 곁에 두고 오래오래 기억하겠습니다.”',
+        remake: '선택 안 함 (영구 소장)',
+        date: '2026.11.05',
+        themeBg: '#ECE9F0',
+        accentHex: '#8E839B',
+        flowerType: 'quilt'
+      }
+    ];
+
+    const appState = {
+      currentTab: 'home',
+      heroSliderValue: 55, // 0(헌 옷) ~ 100(화환)
+      createStep: 1,
+      orderForm: {
+        purpose: '개업·이전',
+        shape: '벽걸이 리스형',
+        shapePrice: 129000,
+        eventDate: '2026-11-28',
+        garmentType: '의류 (셔츠·자켓·니트)',
+        garmentCount: 3,
+        details: ['단추·지퍼 살리기', '자수·와펜 살리기'],
+        colorMix: 'mix', // 'pure' | 'mix'
+        ribbonType: '업사이클링 패브릭 리본',
+        ribbonMsg: '새로운 시작을 진심으로 축하합니다',
+        ribbonSender: '함께 걸어온 동기 일동',
+        storyTag: '10년 전 첫 출근길에 입었던 셔츠로 너의 새로운 출발을 응원해.',
+        qrArchive: true,
+        pickupMethod: '수거 키트(리턴백) 먼저 받기',
+        leftover: '공방 기부 (추가 업사이클링)',
+        remakeGoods: '패브릭 꽃 키링 (+25,000원)',
+        remakePrice: 25000
+      },
+      customCreatedOrder: null,
+      selectedTrackingOrder: 'sample' // 'sample' | 'custom'
+    };
+
+    // =========================================================================
+    // 2. 커스텀 SVG 일러스트 헬퍼 (외부 이미지 깨짐 방지 및 감성 표현)
+    // =========================================================================
+    function getGarmentSVG() {
+      return `
+        <svg viewBox="0 0 280 200" class="w-full h-full">
+          <rect width="280" height="200" fill="#DED7CC"/>
+          <!-- 접힌 헌 데님 자켓 & 린넨 셔츠 일러스트 -->
+          <g transform="translate(45, 28)">
+            <!-- 셔츠 베이스 -->
+            <path d="M40 25 L75 10 L115 10 L150 25 L175 65 L150 82 L135 58 L135 135 L55 135 L55 58 L40 82 L15 65 Z" fill="#5D738A" stroke="#2B2B2B" stroke-width="2"/>
+            <!-- 카라 -->
+            <path d="M75 10 L95 34 L115 10" fill="none" stroke="#2B2B2B" stroke-width="2"/>
+            <path d="M75 10 L68 28 L95 34 L122 28 L115 10" fill="#768CA3" stroke="#2B2B2B" stroke-width="1.5"/>
+            <!-- 황동 단추 -->
+            <circle cx="95" cy="52" r="3.5" fill="#E9B44C" stroke="#2B2B2B" stroke-width="1"/>
+            <circle cx="95" cy="74" r="3.5" fill="#E9B44C" stroke="#2B2B2B" stroke-width="1"/>
+            <circle cx="95" cy="96" r="3.5" fill="#E9B44C" stroke="#2B2B2B" stroke-width="1"/>
+            <!-- 주머니 및 봉제선 -->
+            <rect x="108" y="52" width="18" height="20" rx="2" fill="none" stroke="#E9B44C" stroke-width="1.2" stroke-dasharray="2 2"/>
+            <!-- 아래 겹쳐진 체크 린넨 원단 -->
+            <path d="M25 118 Q95 105 165 118 L172 142 Q95 132 18 142 Z" fill="#EAE3D5" stroke="#2B2B2B" stroke-width="1.8"/>
+            <path d="M35 128 Q95 118 155 128" fill="none" stroke="#D46A4C" stroke-width="1.5" stroke-dasharray="4 3"/>
+          </g>
+          <text x="140" y="186" text-anchor="middle" fill="#2B2B2B" font-size="11" font-weight="600" opacity="0.65">BEFORE · 옷장 속 잠든 데님 자켓 & 셔츠</text>
+        </svg>
+      `;
+    }
+
+    function getWreathSVG(type = 'denim') {
+      const palette = type === 'workwear'
+        ? { c1: '#1B3022', c2: '#D46A4C', c3: '#E9B44C', bg: '#EAE4DA' }
+        : type === 'quilt'
+        ? { c1: '#8E839B', c2: '#E4B7B2', c3: '#F7F4EF', bg: '#EAE4DA' }
+        : { c1: '#3F5A73', c2: '#D46A4C', c3: '#E9B44C', bg: '#EAE4DA' };
+
+      return `
+        <svg viewBox="0 0 280 200" class="w-full h-full">
+          <rect width="280" height="200" fill="${palette.bg}"/>
+          <!-- 리스 베이스 링 -->
+          <circle cx="140" cy="92" r="56" fill="none" stroke="#1B3022" stroke-width="14" opacity="0.88"/>
+          <circle cx="140" cy="92" r="56" fill="none" stroke="#8FA895" stroke-width="3" stroke-dasharray="6 4"/>
+          
+          <!-- 업사이클링 패브릭 꽃송이들 -->
+          <!-- 꽃 1 (좌상단 데님/메인 원단 꽃) -->
+          <g transform="translate(92, 62)">
+            <circle cx="0" cy="-10" r="11" fill="${palette.c1}"/>
+            <circle cx="10" cy="-3" r="11" fill="${palette.c1}"/>
+            <circle cx="6" cy="9" r="11" fill="${palette.c1}"/>
+            <circle cx="-6" cy="9" r="11" fill="${palette.c1}"/>
+            <circle cx="-10" cy="-3" r="11" fill="${palette.c1}"/>
+            <!-- 보존된 단추 꽃술 -->
+            <circle cx="0" cy="0" r="6" fill="#E9B44C" stroke="#2B2B2B" stroke-width="1.2"/>
+            <circle cx="-2" cy="-1.5" r="0.8" fill="#2B2B2B"/>
+            <circle cx="2" cy="-1.5" r="0.8" fill="#2B2B2B"/>
+            <circle cx="-2" cy="1.5" r="0.8" fill="#2B2B2B"/>
+            <circle cx="2" cy="1.5" r="0.8" fill="#2B2B2B"/>
+          </g>
+
+          <!-- 꽃 2 (우상단 테라코타 로즈) -->
+          <g transform="translate(185, 65)">
+            <circle cx="0" cy="-9" r="10" fill="${palette.c2}"/>
+            <circle cx="9" cy="-2" r="10" fill="${palette.c2}"/>
+            <circle cx="5" cy="8" r="10" fill="${palette.c2}"/>
+            <circle cx="-5" cy="8" r="10" fill="${palette.c2}"/>
+            <circle cx="-9" cy="-2" r="10" fill="${palette.c2}"/>
+            <circle cx="0" cy="0" r="5" fill="#F7F4EF"/>
+          </g>
+
+          <!-- 꽃 3 (하단 중앙 메인 빅플라워) -->
+          <g transform="translate(140, 144)">
+            <circle cx="0" cy="-12" r="13" fill="${palette.c2}"/>
+            <circle cx="12" cy="-4" r="13" fill="${palette.c1}"/>
+            <circle cx="8" cy="10" r="13" fill="${palette.c2}"/>
+            <circle cx="-8" cy="10" r="13" fill="${palette.c1}"/>
+            <circle cx="-12" cy="-4" r="13" fill="${palette.c2}"/>
+            <circle cx="0" cy="0" r="6.5" fill="${palette.c3}" stroke="#2B2B2B" stroke-width="1.2"/>
+          </g>
+
+          <!-- 꽃 4 & 5 보조 꽃 -->
+          <circle cx="86" cy="112" r="12" fill="${palette.c3}" stroke="#1B3022" stroke-width="1.5"/>
+          <circle cx="86" cy="112" r="4" fill="${palette.c1}"/>
+          <circle cx="192" cy="112" r="12" fill="${palette.c1}"/>
+          <circle cx="192" cy="112" r="4" fill="${palette.c3}"/>
+
+          <!-- 직조 스토리 라벨 택 -->
+          <g transform="translate(168, 134) rotate(12)">
+            <rect x="0" y="0" width="38" height="18" rx="3" fill="#F7F4EF" stroke="#1B3022" stroke-width="1.2"/>
+            <text x="19" y="11" text-anchor="middle" fill="#1B3022" font-size="6" font-weight="700">RE:BLOOM</text>
+          </g>
+
+          <text x="140" y="186" text-anchor="middle" fill="#1B3022" font-size="11" font-weight="700">AFTER · 단추와 원단 결을 살린 패브릭 리스</text>
+        </svg>
+      `;
+    }
+
+    function getShapeIconSVG(shapeName) {
+      if (shapeName.includes('3단')) {
+        return `<svg class="w-10 h-10 text-forest" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 42L21 26M32 42L27 26M24 26V42" stroke-linecap="round"/>
+          <circle cx="24" cy="12" r="6" fill="#D46A4C" stroke="none"/>
+          <circle cx="24" cy="22" r="7" fill="#1B3022" stroke="none"/>
+          <circle cx="24" cy="31" r="6" fill="#E9B44C" stroke="none"/>
+        </svg>`;
+      } else if (shapeName.includes('리스')) {
+        return `<svg class="w-10 h-10 text-forest" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="14" stroke="#1B3022" stroke-width="5"/>
+          <circle cx="16" cy="14" r="4.5" fill="#D46A4C"/>
+          <circle cx="33" cy="17" r="4" fill="#E9B44C"/>
+          <circle cx="24" cy="37" r="5" fill="#D46A4C"/>
+        </svg>`;
+      } else {
+        return `<svg class="w-10 h-10 text-forest" viewBox="0 0 48 48" fill="none">
+          <path d="M15 30H33L30 40H18L15 30Z" fill="#8E839B"/>
+          <circle cx="20" cy="22" r="5.5" fill="#D46A4C"/>
+          <circle cx="29" cy="23" r="5" fill="#E9B44C"/>
+          <circle cx="24" cy="16" r="5.5" fill="#1B3022"/>
+        </svg>`;
+      }
+    }
+
+    // =========================================================================
+    // 3. 유틸리티 함수 (토스트, 날짜 역산, 네비게이션)
+    // =========================================================================
+    let toastTimer = null;
+    function showToast(msg) {
+      const box = document.getElementById('toast-box');
+      const text = document.getElementById('toast-text');
+      text.textContent = msg;
+      box.classList.remove('opacity-0', '-translate-y-2');
+      box.classList.add('opacity-100', 'translate-y-0');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        box.classList.remove('opacity-100', 'translate-y-0');
+        box.classList.add('opacity-0', '-translate-y-2');
+      }, 2400);
+    }
+
+    function calculatePickupDeadline(eventDateStr) {
+      if (!eventDateStr) return '행사일 9일 전까지';
+      const d = new Date(eventDateStr);
+      if (isNaN(d.getTime())) return '행사일 9일 전까지';
+      d.setDate(d.getDate() - 9);
+      const days = ['일', '월', '화', '수', '목', '금', '토'];
+      return `${d.getMonth() + 1}월 ${d.getDate()}일(${days[d.getDay()]})`;
+    }
+
+    function switchTab(tabName) {
+      appState.currentTab = tabName;
+      // 하단 탭 스타일 업데이트
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+          btn.classList.remove('text-charcoal/45');
+          btn.classList.add('text-forest');
+        } else {
+          btn.classList.remove('text-forest');
+          btn.classList.add('text-charcoal/45');
+        }
+      });
+
+      const viewport = document.getElementById('app-viewport');
+      viewport.scrollTop = 0;
+
+      if (tabName === 'home') renderHome();
+      else if (tabName === 'create') renderCreate();
+      else if (tabName === 'myloop') renderMyLoop();
+      else if (tabName === 'my') renderMyPage();
+    }
+
+    // =========================================================================
+    // 4. 화면 1: 홈 화면 (01_Home)
+    // =========================================================================
+    function renderHome() {
+      const viewport = document.getElementById('app-viewport');
+      const sliderVal = appState.heroSliderValue;
+
+      viewport.innerHTML = `
+        <div class="animate-screen">
+          <!-- Top Bar -->
+          <header class="px-5 pt-2 pb-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="font-serif text-2xl font-bold tracking-tight text-forest">RE:BLOOM</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-forest/10 text-forest font-semibold">UPCYCLING</span>
+            </div>
+            <button onclick="showToast('새로운 제작 리포트 알림이 1건 있습니다.')" class="relative p-2 rounded-full hover:bg-forest/5 transition">
+              <svg class="w-5 h-5 text-forest" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-terracotta"></span>
+            </button>
+          </header>
+
+          <!-- Hero Section: 카피 + Before & After 스와이프 비교 카드 -->
+          <section class="px-5 pt-1 pb-6">
+            <h1 class="text-[24px] font-bold leading-[1.32] tracking-tight text-forest">
+              버려질 뻔한 옷의<br/>두 번째 개화
+            </h1>
+            <p class="mt-1.5 text-[13px] text-charcoal/70 leading-relaxed">
+              옷장 속 잠든 추억을 꽃으로 피워,<br/>소중한 날의 마음을 전하세요.
+            </p>
+
+            <!-- Interactive Before/After Comparison Card -->
+            <div class="mt-4 relative rounded-3xl overflow-hidden shadow-md border border-forest/15 bg-white">
+              <div id="hero-compare-container" class="relative w-full h-[205px] overflow-hidden select-none">
+                <!-- Base Layer: AFTER (화환) -->
+                <div class="absolute inset-0 w-full h-full">
+                  ${getWreathSVG('denim')}
+                </div>
+                <!-- Clipped Layer: BEFORE (헌 옷) -->
+                <div id="hero-before-layer" class="absolute inset-0 w-full h-full overflow-hidden" style="clip-path: inset(0 ${100 - sliderVal}% 0 0);">
+                  ${getGarmentSVG()}
+                </div>
+                <!-- Divider Line & Handle -->
+                <div id="hero-divider" class="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_8px_rgba(0,0,0,0.4)] pointer-events-none" style="left: ${sliderVal}%;">
+                  <div class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-forest text-oatmeal shadow-lg border-2 border-white flex items-center justify-center">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                    <svg class="w-4 h-4 -ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                  </div>
+                </div>
+                <!-- 상단 상태 뱃지 -->
+                <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-charcoal/75 backdrop-blur-sm text-white text-[10px] font-semibold">헌 옷 (Before)</span>
+                <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-forest/85 backdrop-blur-sm text-oatmeal text-[10px] font-semibold">화환 (After)</span>
+              </div>
+
+              <!-- 직관적인 범위 슬라이더 컨트롤 -->
+              <div class="px-4 py-2.5 bg-white flex items-center gap-3 border-t border-forest/5">
+                <span class="text-[11px] font-semibold text-charcoal/60 shrink-0">드래그 비교</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value="${sliderVal}"
+                  oninput="updateHeroSlider(this.value)"
+                  class="w-full accent-forest h-1.5 bg-oatmealDark rounded-lg cursor-pointer"
+                />
+              </div>
+            </div>
+
+            <!-- Main CTA Button -->
+            <button onclick="startCreateFlow()" class="mt-4 w-full py-4 rounded-2xl bg-terracotta hover:bg-terracottaHover active:scale-[0.99] transition-all text-white font-semibold text-[15px] shadow-[0_10px_24px_-6px_rgba(212,106,76,0.55)] flex items-center justify-center gap-2">
+              <span>내 물건으로 화환 만들기</span>
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+          </section>
+
+          <!-- Section 1: 형태별 둘러보기 (가로 스크롤) -->
+          <section class="py-4 border-t border-forest/10">
+            <div class="px-5 flex items-center justify-between mb-3">
+              <h2 class="text-[17px] font-bold text-forest">어떤 공간에 마음을 전할까요?</h2>
+              <span class="text-[11px] text-charcoal/50">스와이프 →</span>
+            </div>
+            <div class="flex gap-3 overflow-x-auto no-scrollbar px-5 pb-2">
+              ${[
+                { name: '3단 스탠드형', desc: '개업·전시·공연장의 시선을 사로잡는 존재감', req: '권장: 의류 5~7벌 / 이불 1채', price: '189,000원~' },
+                { name: '벽걸이 리스형', desc: '행사가 끝난 뒤에도 공간의 오브제로 남는 디자인', req: '권장: 의류 2~3벌', price: '129,000원~' },
+                { name: '탁상용 오브제형', desc: '책상과 선반 위에서 오래도록 함께하는 미니 화환', req: '권장: 의류 1~2벌', price: '89,000원~' }
+              ].map(item => `
+                <div onclick="selectShapeAndCreate('${item.name}')" class="min-w-[215px] p-4 rounded-2xl bg-white border border-forest/10 shadow-sm hover:border-forest transition cursor-pointer flex flex-col justify-between">
+                  <div>
+                    <div class="w-12 h-12 rounded-2xl bg-oatmeal flex items-center justify-center mb-3">
+                      ${getShapeIconSVG(item.name)}
+                    </div>
+                    <h3 class="text-[15px] font-bold text-charcoal">${item.name}</h3>
+                    <p class="mt-1 text-[12px] text-charcoal/65 leading-snug">${item.desc}</p>
+                  </div>
+                  <div class="mt-3 pt-2.5 border-t border-oatmealDark flex items-center justify-between">
+                    <span class="text-[10px] font-medium text-forest bg-forest/10 px-2 py-0.5 rounded-md">${item.req}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </section>
+
+          <!-- Section 2: 다시 피어난 이야기들 (스토리 갤러리) -->
+          <section class="px-5 pt-4 pb-6 border-t border-forest/10">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h2 class="text-[17px] font-bold text-forest">다시 피어난 이야기들</h2>
+                <p class="text-[11px] text-charcoal/60 mt-0.5">카드를 눌러 실제 화환의 QR 스토리 아카이브를 확인하세요</p>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              ${sampleStories.map((story, idx) => `
+                <article onclick="openQRArchive(${idx})" class="p-4 rounded-2xl bg-white border border-forest/10 shadow-sm hover:border-terracotta/50 transition cursor-pointer">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full ${story.badgeColor}">${story.badge}</span>
+                    <span class="text-[11px] text-charcoal/50 flex items-center gap-1">
+                      <svg class="w-3.5 h-3.5 text-forest" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                      QR 스토리 보기
+                    </span>
+                  </div>
+                  <h3 class="text-[15px] font-bold text-charcoal leading-snug">${story.title}</h3>
+                  <p class="mt-1 text-[12px] text-forest font-medium">재료: ${story.garments}</p>
+                  <p class="mt-2 p-2.5 rounded-xl bg-oatmeal text-[12px] font-batang text-charcoal/85 leading-relaxed">
+                    ${story.story}
+                  </p>
+                </article>
+              `).join('')}
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    function updateHeroSlider(val) {
+      appState.heroSliderValue = val;
+      const beforeLayer = document.getElementById('hero-before-layer');
+      const divider = document.getElementById('hero-divider');
+      if (beforeLayer) beforeLayer.style.clipPath = `inset(0 ${100 - val}% 0 0)`;
+      if (divider) divider.style.left = `${val}%`;
+    }
+
+    function startCreateFlow() {
+      appState.createStep = 1;
+      switchTab('create');
+    }
+
+    function selectShapeAndCreate(shapeName) {
+      appState.orderForm.shape = shapeName;
+      appState.orderForm.shapePrice = shapeName.includes('3단') ? 189000 : shapeName.includes('리스') ? 129000 : 89000;
+      appState.createStep = 1;
+      switchTab('create');
+      showToast(`'${shapeName}'이(가) 선택되었습니다.`);
+    }
+
+    // =========================================================================
+    // 5. 화면 2: 제작하기 5단계 스텝퍼 (02_Create_Step 1 ~ 5)
+    // =========================================================================
+    function renderCreate() {
+      const viewport = document.getElementById('app-viewport');
+      const step = appState.createStep;
+      const f = appState.orderForm;
+
+      const stepTitles = [
+        '목적 및 형태 선택',
+        '보낼 물건 및 디테일',
+        '스토리 및 리본 커스텀',
+        '수거 및 사후 리메이크',
+        '최종 견적 확인 및 결제'
+      ];
+
+      let stepBodyHTML = '';
+
+      // ---------------- STEP 1 ----------------
+      if (step === 1) {
+        const purposes = ['개업·이전', '승진·취임', '전시·공연', '졸업·퇴임', '추모·위로'];
+        const shapes = [
+          { name: '3단 스탠드형', sub: '권장: 의류 5~7벌 또는 이불 1채', price: 189000 },
+          { name: '벽걸이 리스형', sub: '권장: 의류 2~3벌 (인테리어 소장 추천)', price: 129000 },
+          { name: '탁상용 오브제형', sub: '권장: 의류 1~2벌 (책상·선반용)', price: 89000 }
+        ];
+        const deadlineText = calculatePickupDeadline(f.eventDate);
+
+        stepBodyHTML = `
+          <div class="space-y-6">
+            <div>
+              <h2 class="text-[20px] font-bold text-forest leading-snug">어떤 축하와 위로의 자리인가요?</h2>
+              <div class="mt-3 flex flex-wrap gap-2">
+                ${purposes.map(p => `
+                  <button onclick="updateForm('purpose', '${p}')" class="px-3.5 py-2 rounded-full text-[13px] font-semibold transition ${f.purpose === p ? 'bg-forest text-oatmeal shadow-sm' : 'bg-white text-charcoal/75 border border-forest/15 hover:border-forest'}">
+                    ${p}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+            <div>
+              <h3 class="text-[15px] font-bold text-charcoal mb-2.5">화환 형태 선택</h3>
+              <div class="space-y-2.5">
+                ${shapes.map(s => {
+                  const active = f.shape === s.name;
+                  return `
+                    <div onclick="selectCreateShape('${s.name}', ${s.price})" class="p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between ${active ? 'bg-forest/5 border-forest ring-1 ring-forest' : 'bg-white border-forest/10'}">
+                      <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-xl bg-oatmeal flex items-center justify-center shrink-0">
+                          ${getShapeIconSVG(s.name)}
+                        </div>
+                        <div>
+                          <div class="text-[14px] font-bold text-charcoal">${s.name}</div>
+                          <div class="text-[11px] text-charcoal/60">${s.sub}</div>
+                        </div>
+                      </div>
+                      <div class="text-[13px] font-bold text-forest">${s.price.toLocaleString()}원</div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[15px] font-bold text-charcoal mb-2">행사 날짜 선택</label>
+              <input
+                type="date"
+                value="${f.eventDate}"
+                onchange="updateForm('eventDate', this.value)"
+                class="w-full px-4 py-3 rounded-2xl bg-white border border-forest/20 text-[14px] font-semibold text-charcoal focus:outline-none focus:border-forest"
+              />
+              <div class="mt-2.5 p-3 rounded-xl bg-mustard/20 border border-mustard/40 text-[12px] text-charcoal font-medium flex items-start gap-2">
+                <span>💡</span>
+                <span><strong>${f.eventDate}</strong> 행사 기준, 늦어도 <strong>${deadlineText}</strong>까지는 물건이 수거되어야 세탁 및 제작이 완료됩니다.</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // ---------------- STEP 2 ----------------
+      else if (step === 2) {
+        const garmentTypes = ['의류 (셔츠·자켓·니트)', '침구류 (이불·베개 커버)', '애착 패브릭·기타 소품'];
+        const detailOptions = [
+          { title: '단추·지퍼 살리기', desc: '꽃술이나 줄기 포인트로 활용해요' },
+          { title: '자수·와펜 살리기', desc: '화환의 메인 엠블럼으로 배치해요' },
+          { title: '카라·소매 형태 유지', desc: '옷의 원래 실루엣이 은은하게 드러나요' },
+          { title: '전체 해체 후 꽃잎 재단', desc: '원단 본연의 색감과 질감만 남기고 새롭게 피워요' }
+        ];
+
+        stepBodyHTML = `
+          <div class="space-y-6">
+            <div>
+              <h2 class="text-[20px] font-bold text-forest leading-snug">꽃이 될 물건을 알려주세요</h2>
+              <p class="text-[12px] text-charcoal/60 mt-1">입고 후 친환경 세탁 및 고온 스팀 살균 공정을 거칩니다.</p>
+
+              <!-- 가상 사진 첨부 박스 -->
+              <div onclick="showToast('샘플 의류 사진 2장이 첨부되었습니다.')" class="mt-3 p-4 rounded-2xl border-2 border-dashed border-forest/25 bg-white/70 hover:bg-white transition cursor-pointer flex items-center gap-3.5">
+                <div class="w-14 h-14 rounded-xl bg-oatmealDark flex flex-col items-center justify-center text-forest shrink-0">
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  <span class="text-[9px] font-bold mt-0.5">2/5장</span>
+                </div>
+                <div>
+                  <div class="text-[13px] font-bold text-forest">데님_자켓_앞면.jpg 외 1장</div>
+                  <div class="text-[11px] text-charcoal/60 mt-0.5">살리고 싶은 단추나 자수 부분을 탭하여 추가하세요</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 소재 및 수량 -->
+            <div>
+              <label class="block text-[14px] font-bold text-charcoal mb-2">소재 및 보낼 수량</label>
+              <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-2">
+                ${garmentTypes.map(gt => `
+                  <button onclick="updateForm('garmentType', '${gt}')" class="px-3 py-1.5 rounded-xl text-[12px] font-semibold shrink-0 border ${f.garmentType === gt ? 'bg-forest text-oatmeal border-forest' : 'bg-white text-charcoal/70 border-forest/15'}">
+                    ${gt}
+                  </button>
+                `).join('')}
+              </div>
+              <div class="mt-2 p-3.5 rounded-2xl bg-white border border-forest/10 flex items-center justify-between">
+                <span class="text-[13px] font-semibold text-charcoal">보낼 물건 총 수량</span>
+                <div class="flex items-center gap-3">
+                  <button onclick="changeGarmentCount(-1)" class="w-8 h-8 rounded-full bg-oatmeal text-forest font-bold flex items-center justify-center">-</button>
+                  <span class="text-[15px] font-bold w-6 text-center">${f.garmentCount}</span>
+                  <button onclick="changeGarmentCount(1)" class="w-8 h-8 rounded-full bg-forest text-oatmeal font-bold flex items-center justify-center">+</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 보존할 디테일 체크박스 -->
+            <div>
+              <label class="block text-[14px] font-bold text-charcoal mb-2">보존할 디테일 지정 (복수 선택)</label>
+              <div class="space-y-2">
+                ${detailOptions.map(opt => {
+                  const checked = f.details.includes(opt.title);
+                  return `
+                    <div onclick="toggleDetail('${opt.title}')" class="p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between ${checked ? 'bg-forest text-oatmeal border-forest' : 'bg-white text-charcoal border-forest/10'}">
+                      <div>
+                        <div class="text-[13px] font-bold">${opt.title}</div>
+                        <div class="text-[11px] ${checked ? 'text-oatmeal/75' : 'text-charcoal/55'}">${opt.desc}</div>
+                      </div>
+                      <div class="w-5 h-5 rounded-md flex items-center justify-center ${checked ? 'bg-mustard text-forest' : 'border border-charcoal/30'}">
+                        ${checked ? '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <!-- 컬러 보정 토글 -->
+            <div>
+              <label class="block text-[14px] font-bold text-charcoal mb-2">컬러 톤앤매너 구성</label>
+              <div class="grid grid-cols-2 gap-2">
+                <button onclick="updateForm('colorMix', 'pure')" class="p-3 rounded-2xl border text-left transition ${f.colorMix === 'pure' ? 'bg-forest/10 border-forest font-bold text-forest' : 'bg-white border-forest/10 text-charcoal/70'}">
+                  <div class="text-[12px] font-bold">내 물건 100%만 사용</div>
+                  <div class="text-[10px] opacity-75 mt-0.5">보낸 원단 색감 그대로</div>
+                </button>
+                <button onclick="updateForm('colorMix', 'mix')" class="p-3 rounded-2xl border text-left transition ${f.colorMix === 'mix' ? 'bg-forest/10 border-forest font-bold text-forest' : 'bg-white border-forest/10 text-charcoal/70'}">
+                  <div class="text-[12px] font-bold">보조 원단 믹스 추천</div>
+                  <div class="text-[10px] opacity-75 mt-0.5">화사한 톤 보정 데드스톡</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // ---------------- STEP 3 ----------------
+      else if (step === 3) {
+        stepBodyHTML = `
+          <div class="space-y-5">
+            <div>
+              <h2 class="text-[20px] font-bold text-forest leading-snug">리본과 스토리를 새겨주세요</h2>
+              <p class="text-[12px] text-charcoal/60 mt-1">입력하신 문구가 리본과 직조 라벨에 실시간 반영됩니다.</p>
+            </div>
+
+            <!-- 실시간 패브릭 리본 미리보기 박스 -->
+            <div class="p-4 rounded-3xl bg-forest text-oatmeal relative overflow-hidden ribbon-shadow">
+              <div class="text-[10px] uppercase tracking-widest text-mustard font-semibold mb-2 flex items-center justify-between">
+                <span>LIVE RIBBON PREVIEW</span>
+                <span>자투리 린넨 패브릭 리본</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2.5 my-1">
+                <!-- 좌측 리본 (보내는 분) -->
+                <div class="bg-oatmeal text-forest rounded-xl p-3 min-h-[96px] flex flex-col justify-between border-b-4 border-terracotta relative">
+                  <span class="text-[9px] text-charcoal/50 font-semibold">보내는 분</span>
+                  <p id="preview-ribbon-sender" class="font-batang font-bold text-[13px] leading-snug break-keep">
+                    ${f.ribbonSender || '보내는 분 성함'}
+                  </p>
+                  <span class="text-[8px] text-forest/50 self-end">RE:BLOOM</span>
+                </div>
+                <!-- 우측 리본 (축하/추모 문구) -->
+                <div class="bg-oatmeal text-forest rounded-xl p-3 min-h-[96px] flex flex-col justify-between border-b-4 border-mustard relative">
+                  <span class="text-[9px] text-charcoal/50 font-semibold">축하·위로 문구</span>
+                  <p id="preview-ribbon-msg" class="font-batang font-bold text-[13px] leading-snug break-keep">
+                    ${f.ribbonMsg || '축하 문구를 입력하세요'}
+                  </p>
+                  <span class="text-[8px] text-forest/50 self-end">✦</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 리본 문구 입력 필드 -->
+            <div class="space-y-3">
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-[13px] font-bold text-charcoal">축하·추모 문구</label>
+                  <button onclick="fillSampleRibbon()" class="text-[11px] text-terracotta font-semibold underline">추천 문구 채우기</button>
+                </div>
+                <input
+                  type="text"
+                  value="${f.ribbonMsg}"
+                  oninput="updateRibbonLive('ribbonMsg', this.value)"
+                  placeholder="예) 새로운 시작을 진심으로 축하합니다"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-forest/20 text-[13px] focus:outline-none focus:border-forest"
+                />
+              </div>
+
+              <div>
+                <label class="block text-[13px] font-bold text-charcoal mb-1">보내는 분</label>
+                <input
+                  type="text"
+                  value="${f.ribbonSender}"
+                  oninput="updateRibbonLive('ribbonSender', this.value)"
+                  placeholder="예) 함께 걸어온 동기 일동"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-forest/20 text-[13px] focus:outline-none focus:border-forest"
+                />
+              </div>
+            </div>
+
+            <!-- 스토리 택(Tag) 작성 -->
+            <div class="pt-2 border-t border-forest/10">
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-[13px] font-bold text-charcoal">물건의 스토리 택 (직조 라벨 & QR)</label>
+                <span id="story-char-count" class="text-[11px] font-semibold text-forest">${f.storyTag.length}/60자</span>
+              </div>
+              <textarea
+                rows="2"
+                maxlength="60"
+                oninput="updateStoryTag(this.value)"
+                placeholder="이 물건에 담긴 짧은 기억을 적어주세요."
+                class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-forest/20 text-[13px] font-batang focus:outline-none focus:border-forest"
+              >${f.storyTag}</textarea>
+              <label class="mt-2 flex items-center gap-2 text-[12px] text-charcoal/80 cursor-pointer">
+                <input type="checkbox" ${f.qrArchive ? 'checked' : ''} onchange="updateForm('qrArchive', this.checked)" class="accent-forest w-4 h-4 rounded" />
+                <span>화환에 <strong>QR 디지털 스토리 아카이브</strong> 태그 부착 (무료)</span>
+              </label>
+            </div>
+          </div>
+        `;
+      }
+
+      // ---------------- STEP 4 ----------------
+      else if (step === 4) {
+        const pickups = [
+          { title: '수거 키트(리턴백) 먼저 받기', desc: '전용 방수 리턴백을 문 앞으로 먼저 보내드려요 (+0원)' },
+          { title: '내 박스로 바로 수거 신청', desc: '집에 있는 박스에 담아두시면 내일 제휴 택배가 수거해요' },
+          { title: '연희동 공방 직접 방문', desc: '아티스트와 직접 원단과 디자인을 상담해요' }
+        ];
+        const remakes = [
+          { name: '선택 안 함 (화환 영구 소장)', price: 0 },
+          { name: '패브릭 꽃 키링 (+25,000원)', price: 25000 },
+          { name: '스트링 파우치 2개 (+35,000원)', price: 35000 },
+          { name: '압화 패브릭 액자 (+45,000원)', price: 45000 }
+        ];
+
+        stepBodyHTML = `
+          <div class="space-y-6">
+            <div>
+              <h2 class="text-[20px] font-bold text-forest leading-snug">물건 수거와 행사 후 순환</h2>
+              <p class="text-[12px] text-charcoal/60 mt-1">행사가 끝난 화환을 버리지 않고 작은 굿즈로 이어갑니다.</p>
+            </div>
+
+            <!-- 원물 수거 방식 -->
+            <div>
+              <label class="block text-[14px] font-bold text-charcoal mb-2">1. 원물 수거 방식</label>
+              <div class="space-y-2">
+                ${pickups.map(pk => {
+                  const active = f.pickupMethod === pk.title;
+                  return `
+                    <div onclick="updateForm('pickupMethod', '${pk.title}')" class="p-3.5 rounded-2xl border transition cursor-pointer ${active ? 'bg-forest/5 border-forest ring-1 ring-forest' : 'bg-white border-forest/10'}">
+                      <div class="text-[13px] font-bold text-charcoal">${pk.title}</div>
+                      <div class="text-[11px] text-charcoal/60 mt-0.5">${pk.desc}</div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <!-- 행사 후 2차 리메이크 옵션 -->
+            <div>
+              <div class="flex items-center gap-1.5 mb-2">
+                <label class="text-[14px] font-bold text-charcoal">2. 행사 종료 후 2차 리메이크</label>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-terracotta/15 text-terracotta font-bold">CIRCULAR</span>
+              </div>
+              <div class="space-y-2">
+                ${remakes.map(rm => {
+                  const active = f.remakeGoods === rm.name;
+                  return `
+                    <div onclick="selectRemakeOption('${rm.name}', ${rm.price})" class="p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between ${active ? 'bg-forest text-oatmeal border-forest' : 'bg-white text-charcoal border-forest/10'}">
+                      <span class="text-[13px] font-semibold">${rm.name}</span>
+                      <span class="w-4 h-4 rounded-full border flex items-center justify-center ${active ? 'border-mustard bg-mustard' : 'border-charcoal/30'}">
+                        ${active ? '<span class="w-1.5 h-1.5 rounded-full bg-forest"></span>' : ''}
+                      </span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // ---------------- STEP 5 ----------------
+      else if (step === 5) {
+        const totalPrice = f.shapePrice + f.remakePrice;
+        const deadlineText = calculatePickupDeadline(f.eventDate);
+
+        stepBodyHTML = `
+          <div class="space-y-5">
+            <div>
+              <h2 class="text-[20px] font-bold text-forest leading-snug">맞춤 화환 주문서 확인</h2>
+              <p class="text-[12px] text-charcoal/60 mt-1">세상에 단 하나뿐인 업사이클링 화환이 준비됩니다.</p>
+            </div>
+
+            <!-- 주문 요약 카드 -->
+            <div class="p-4 rounded-3xl bg-white border border-forest/15 shadow-sm space-y-3 text-[13px]">
+              <div class="flex items-center justify-between pb-2.5 border-b border-oatmealDark">
+                <span class="text-charcoal/60">목적 · 형태</span>
+                <span class="font-bold text-forest">${f.purpose} / ${f.shape}</span>
+              </div>
+              <div class="flex items-center justify-between pb-2.5 border-b border-oatmealDark">
+                <span class="text-charcoal/60">행사일 (수거 마감)</span>
+                <span class="font-bold text-charcoal">${f.eventDate} <span class="text-terracotta text-[11px]">(${deadlineText}한)</span></span>
+              </div>
+              <div class="flex items-center justify-between pb-2.5 border-b border-oatmealDark">
+                <span class="text-charcoal/60">보낼 물건</span>
+                <span class="font-semibold text-charcoal">${f.garmentType} · ${f.garmentCount}점</span>
+              </div>
+              <div class="pb-2.5 border-b border-oatmealDark">
+                <span class="text-charcoal/60 block mb-1">보존 디테일</span>
+                <div class="flex flex-wrap gap-1">
+                  ${f.details.map(d => `<span class="text-[11px] px-2 py-0.5 rounded-md bg-oatmeal text-forest font-medium">${d}</span>`).join('')}
+                </div>
+              </div>
+              <div class="flex items-center justify-between pb-2.5 border-b border-oatmealDark">
+                <span class="text-charcoal/60">수거 방식</span>
+                <span class="font-semibold text-charcoal">${f.pickupMethod}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-charcoal/60">사후 2차 리메이크</span>
+                <span class="font-semibold text-forest">${f.remakeGoods}</span>
+              </div>
+            </div>
+
+            <!-- 결제 금액 카드 -->
+            <div class="p-4 rounded-2xl bg-forest text-oatmeal space-y-2">
+              <div class="flex justify-between text-[12px] text-oatmeal/75">
+                <span>기본 화환 제작 및 살균·배송비</span>
+                <span>${f.shapePrice.toLocaleString()}원</span>
+              </div>
+              <div class="flex justify-between text-[12px] text-oatmeal/75">
+                <span>2차 리메이크 굿즈 옵션</span>
+                <span>+${f.remakePrice.toLocaleString()}원</span>
+              </div>
+              <div class="pt-2 border-t border-oatmeal/15 flex items-center justify-between">
+                <span class="text-[14px] font-semibold">최종 결제 예정 금액</span>
+                <span class="text-[20px] font-bold text-mustard">${totalPrice.toLocaleString()}원</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      viewport.innerHTML = `
+        <div class="animate-screen flex flex-col min-h-full">
+          <!-- 상단 스텝퍼 헤더 -->
+          <header class="sticky top-0 z-20 bg-oatmeal/95 backdrop-blur px-5 pt-2 pb-3 border-b border-forest/10">
+            <div class="flex items-center justify-between mb-2.5">
+              <button onclick="prevCreateStep()" class="p-1.5 -ml-1.5 rounded-full hover:bg-forest/10 text-forest">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span class="text-[13px] font-bold text-forest">${stepTitles[step - 1]}</span>
+              <span class="text-[12px] font-bold text-terracotta">${step} / 5</span>
+            </div>
+            <!-- 프로그레스 바 -->
+            <div class="w-full h-1.5 bg-oatmealDark rounded-full overflow-hidden">
+              <div class="h-full bg-forest transition-all duration-300 rounded-full" style="width: ${step * 20}%;"></div>
+            </div>
+          </header>
+
+          <!-- 스텝 본문 -->
+          <div class="px-5 pt-5 pb-8 flex-1">
+            ${stepBodyHTML}
+          </div>
+
+          <!-- 하단 다음/결제 버튼 -->
+          <div class="px-5 pb-4">
+            ${step < 5 ? `
+              <button onclick="nextCreateStep()" class="w-full py-4 rounded-2xl bg-forest hover:bg-forestLight text-oatmeal font-semibold text-[15px] shadow-md transition">
+                다음 단계로 (${step}/5)
+              </button>
+            ` : `
+              <button onclick="submitOrder()" class="w-full py-4 rounded-2xl bg-terracotta hover:bg-terracottaHover text-white font-bold text-[15px] shadow-lg transition">
+                결제 및 수거 신청 완료하기
+              </button>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    // 제작 플로우 인터랙션 핸들러
+    function updateForm(key, val) {
+      appState.orderForm[key] = val;
+      renderCreate();
+    }
+
+    function selectCreateShape(name, price) {
+      appState.orderForm.shape = name;
+      appState.orderForm.shapePrice = price;
+      renderCreate();
+    }
+
+    function changeGarmentCount(delta) {
+      const next = Math.max(1, Math.min(15, appState.orderForm.garmentCount + delta));
+      appState.orderForm.garmentCount = next;
+      renderCreate();
+    }
+
+    function toggleDetail(detailName) {
+      const list = appState.orderForm.details;
+      const idx = list.indexOf(detailName);
+      if (idx > -1) {
+        if (list.length > 1) list.splice(idx, 1);
+        else showToast('최소 1개 이상의 제작 방식을 선택해 주세요.');
+      } else {
+        list.push(detailName);
+      }
+      renderCreate();
+    }
+
+    function updateRibbonLive(key, val) {
+      appState.orderForm[key] = val;
+      const targetId = key === 'ribbonMsg' ? 'preview-ribbon-msg' : 'preview-ribbon-sender';
+      const el = document.getElementById(targetId);
+      if (el) el.textContent = val || (key === 'ribbonMsg' ? '축하 문구를 입력하세요' : '보내는 분 성함');
+    }
+
+    function fillSampleRibbon() {
+      appState.orderForm.ribbonMsg = '당신의 빛나는 새로운 출발을 응원합니다';
+      appState.orderForm.ribbonSender = '오랜 친구들이 마음을 담아';
+      renderCreate();
+      showToast('추천 리본 문구가 적용되었습니다.');
+    }
+
+    function updateStoryTag(val) {
+      appState.orderForm.storyTag = val;
+      const counter = document.getElementById('story-char-count');
+      if (counter) counter.textContent = `${val.length}/60자`;
+    }
+
+    function selectRemakeOption(name, price) {
+      appState.orderForm.remakeGoods = name;
+      appState.orderForm.remakePrice = price;
+      renderCreate();
+    }
+
+    function prevCreateStep() {
+      if (appState.createStep > 1) {
+        appState.createStep--;
+        renderCreate();
+      } else {
+        switchTab('home');
+      }
+    }
+
+    function nextCreateStep() {
+      if (appState.createStep < 5) {
+        appState.createStep++;
+        document.getElementById('app-viewport').scrollTop = 0;
+        renderCreate();
+      }
+    }
+
+    function submitOrder() {
+      const f = appState.orderForm;
+      appState.customCreatedOrder = {
+        id: 'ORD-20261113-NEW',
+        badge: f.purpose,
+        badgeColor: 'bg-terracotta text-white',
+        title: `${f.purpose} 맞춤 ${f.shape}`,
+        shape: f.shape,
+        garments: `${f.garmentType} ${f.garmentCount}점`,
+        details: f.details,
+        ribbonMsg: f.ribbonMsg,
+        ribbonSender: f.ribbonSender,
+        story: `“${f.storyTag}”`,
+        remake: f.remakeGoods,
+        date: f.eventDate,
+        pickupMethod: f.pickupMethod,
+        flowerType: 'denim'
+      };
+      appState.selectedTrackingOrder = 'custom';
+      showToast('주문이 완료되었습니다! 실시간 트래킹으로 이동합니다.');
+      switchTab('myloop');
+    }
+
+    // =========================================================================
+    // 6. 화면 3: 내 화환 트래킹 (03_MyLoop_Tracking)
+    // =========================================================================
+    function renderMyLoop() {
+      const viewport = document.getElementById('app-viewport');
+      const hasCustom = !!appState.customCreatedOrder;
+      const isCustomSelected = hasCustom && appState.selectedTrackingOrder === 'custom';
+
+      const activeData = isCustomSelected
+        ? {
+            orderNo: appState.customCreatedOrder.id,
+            title: appState.customCreatedOrder.title,
+            statusBadge: '수거 준비 중 · 리턴백 발송 완료',
+            statusSummary: `${appState.customCreatedOrder.pickupMethod} 일정이 확정되었습니다. 문 앞에 물건을 내놓아 주세요.`,
+            steps: [
+              { title: '주문 접수 및 수거 키트 발송', date: '11.13 (오늘)', desc: '전용 방수 리턴백이 문 앞으로 발송되었습니다.', state: 'current' },
+              { title: '원물 입고 및 친환경 살균', date: '수거 후 2일 이내', desc: '고온 스팀 살균 후 지정하신 디테일을 분리 보관합니다.', state: 'pending' },
+              { title: '아티스트 화환 수작업 제작', date: '행사 3일 전', desc: '패브릭 꽃잎 재단 및 스토리 택 부착', state: 'pending' },
+              { title: '행사장 안전 배송 및 설치', date: appState.customCreatedOrder.date, desc: '현장 설치 후 인증 사진을 보내드립니다.', state: 'pending' },
+              { title: '행사 후 회수 및 2차 리메이크', date: '행사 종료 후', desc: appState.customCreatedOrder.remake, state: 'pending' }
+            ]
+          }
+        : {
+            orderNo: 'ORD-20261113-01',
+            title: "연희동 독립서점 '종이의 숲' 개업 축하 리스",
+            statusBadge: '제작 진행 중 · 패턴 재단 완료',
+            statusSummary: '보내주신 데님 자켓과 린넨 셔츠가 깨끗하게 살균되어 꽃잎 모양으로 재단되고 있어요.',
+            steps: [
+              { title: '원물 수거 완료', date: '11.10', desc: '고객님의 데님 자켓 1벌, 린넨 셔츠 1벌이 공방에 도착했습니다.', state: 'done' },
+              { title: '검수 및 친환경 스팀 살균 완료', date: '11.12', desc: '황동 단추 4개와 소매 자수 이니셜을 안전하게 분리 보관했습니다.', state: 'done' },
+              { title: '화환 수작업 제작 중 (현재)', date: '11.13 (오늘)', desc: '플로리스트 아티스트가 원단 결을 살려 꽃잎을 조형 중입니다.', state: 'current' },
+              { title: '행사장 배송 및 현장 설치', date: '11.20 예정', desc: '연희동 전시장 입구에 13:00까지 세팅될 예정입니다.', state: 'pending' },
+              { title: '행사 후 회수 및 2차 리메이크', date: '12.20 예정', desc: '수거 후 스트링 파우치 2개로 재탄생합니다.', state: 'pending' }
+            ]
+          };
+
+      viewport.innerHTML = `
+        <div class="animate-screen px-5 pt-2 pb-6">
+          <header class="pb-3 flex items-center justify-between">
+            <div>
+              <h1 class="text-[20px] font-bold text-forest">내 화환 트래킹</h1>
+              <p class="text-[11px] text-charcoal/60">물건이 꽃으로 피어나는 전 과정을 확인하세요</p>
+            </div>
+            <span class="text-[11px] font-mono font-semibold text-forest bg-forest/10 px-2.5 py-1 rounded-lg">${activeData.orderNo}</span>
+          </header>
+
+          <!-- 신규 주문이 있을 경우 주문 전환 탭 -->
+          ${hasCustom ? `
+            <div class="mb-4 p-1 rounded-xl bg-oatmealDark grid grid-cols-2 gap-1 text-[12px] font-bold">
+              <button onclick="switchTrackingOrder('custom')" class="py-2 rounded-lg transition ${isCustomSelected ? 'bg-forest text-oatmeal shadow-sm' : 'text-charcoal/60'}">
+                방금 신청한 화환 (NEW)
+              </button>
+              <button onclick="switchTrackingOrder('sample')" class="py-2 rounded-lg transition ${!isCustomSelected ? 'bg-forest text-oatmeal shadow-sm' : 'text-charcoal/60'}">
+                제작 중인 샘플 화환
+              </button>
+            </div>
+          ` : ''}
+
+          <!-- Visual Status Card -->
+          <div class="p-4 rounded-3xl bg-forest text-oatmeal shadow-md relative overflow-hidden">
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-mustard text-forest text-[11px] font-bold mb-2.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-forest animate-ping"></span>
+              <span>${activeData.statusBadge}</span>
+            </div>
+            <h2 class="text-[16px] font-bold leading-snug">${activeData.title}</h2>
+            <p class="mt-1.5 text-[12px] text-oatmeal/80 leading-relaxed">${activeData.statusSummary}</p>
+
+            <!-- 작업 공정 미리보기 일러스트 -->
+            <div class="mt-3.5 h-[135px] rounded-2xl overflow-hidden border border-oatmeal/15">
+              ${getWreathSVG('denim')}
+            </div>
+
+            <!-- QR 디지털 스토리 카드 미리보기 버튼 -->
+            <button onclick="openQRArchive(${isCustomSelected ? -1 : 0})" class="mt-3.5 w-full py-2.5 rounded-xl bg-oatmeal/15 hover:bg-oatmeal/25 text-oatmeal text-[12px] font-semibold flex items-center justify-center gap-1.5 transition">
+              <svg class="w-4 h-4 text-mustard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <span>화환에 달릴 QR 스토리 카드 미리보기</span>
+            </button>
+          </div>
+
+          <!-- Vertical Timeline Stepper -->
+          <div class="mt-5 p-4 rounded-3xl bg-white border border-forest/10">
+            <h3 class="text-[14px] font-bold text-forest mb-4">순환 제작 타임라인</h3>
+            <div class="space-y-4">
+              ${activeData.steps.map((st, idx) => {
+                const isLast = idx === activeData.steps.length - 1;
+                const dotStyle = st.state === 'done'
+                  ? 'bg-forest text-oatmeal'
+                  : st.state === 'current'
+                  ? 'bg-terracotta text-white ring-4 ring-terracotta/20'
+                  : 'bg-oatmealDark text-charcoal/40';
+                return `
+                  <div class="relative flex gap-3.5">
+                    ${!isLast ? `<div class="absolute left-[11px] top-6 bottom-[-16px] w-[2px] ${st.state === 'done' ? 'bg-forest' : 'bg-oatmealDark'}"></div>` : ''}
+                    <div class="w-6 h-6 rounded-full ${dotStyle} flex items-center justify-center text-[11px] font-bold shrink-0 z-10 mt-0.5">
+                      ${st.state === 'done' ? '✓' : idx + 1}
+                    </div>
+                    <div class="flex-1 pb-1">
+                      <div class="flex items-center justify-between">
+                        <span class="text-[13px] font-bold ${st.state === 'pending' ? 'text-charcoal/50' : 'text-charcoal'}">${st.title}</span>
+                        <span class="text-[10px] font-semibold ${st.state === 'current' ? 'text-terracotta' : 'text-charcoal/45'}">${st.date}</span>
+                      </div>
+                      <p class="mt-0.5 text-[11px] leading-relaxed ${st.state === 'pending' ? 'text-charcoal/40' : 'text-charcoal/70'}">${st.desc}</p>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function switchTrackingOrder(type) {
+      appState.selectedTrackingOrder = type;
+      renderMyLoop();
+    }
+
+    // =========================================================================
+    // 7. 화면 4: 마이페이지 (04_My)
+    // =========================================================================
+    function renderMyPage() {
+      const viewport = document.getElementById('app-viewport');
+      viewport.innerHTML = `
+        <div class="animate-screen px-5 pt-3 pb-6 space-y-5">
+          <div class="flex items-center gap-3.5 p-4 rounded-3xl bg-white border border-forest/10">
+            <div class="w-14 h-14 rounded-full bg-forest text-oatmeal font-serif text-xl font-bold flex items-center justify-center">
+              RB
+            </div>
+            <div>
+              <div class="text-[16px] font-bold text-charcoal">김서연 님</div>
+              <div class="text-[12px] text-charcoal/60">서울시 서대문구 연희맛로 · 기본 수거지 등록됨</div>
+            </div>
+          </div>
+
+          <!-- 업사이클링 환경 임팩트 리포트 -->
+          <div class="p-4 rounded-3xl bg-forest text-oatmeal">
+            <div class="text-[11px] text-mustard font-semibold mb-2">MY UPCYCLING IMPACT</div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="p-3 rounded-2xl bg-oatmeal/10">
+                <div class="text-[11px] text-oatmeal/75">다시 피어난 섬유</div>
+                <div class="text-[20px] font-bold mt-0.5">3.4 <span class="text-[12px] font-normal">kg</span></div>
+              </div>
+              <div class="p-3 rounded-2xl bg-oatmeal/10">
+                <div class="text-[11px] text-oatmeal/75">탄소 저감 효과</div>
+                <div class="text-[20px] font-bold text-mustard mt-0.5">11.2 <span class="text-[12px] font-normal">kgCO₂</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 메뉴 리스트 -->
+          <div class="rounded-3xl bg-white border border-forest/10 divide-y divide-oatmealDark text-[13px] font-medium">
+            <button onclick="showToast('수거지 및 배송지 관리 화면입니다.')" class="w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-oatmeal/50">
+              <span>수거지 및 리턴백 관리</span>
+              <span class="text-charcoal/40">›</span>
+            </button>
+            <button onclick="showToast('보유 중인 리메이크 10% 할인 쿠폰 1장이 있습니다.')" class="w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-oatmeal/50">
+              <span>2차 리메이크 쿠폰함</span>
+              <span class="text-terracotta font-bold">1장</span>
+            </button>
+            <button onclick="resetPrototype()" class="w-full px-4 py-3.5 flex items-center justify-between text-left text-terracotta font-semibold hover:bg-oatmeal/50">
+              <span>프로토타입 상태 초기화</span>
+              <span>↺</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function resetPrototype() {
+      appState.customCreatedOrder = null;
+      appState.selectedTrackingOrder = 'sample';
+      appState.createStep = 1;
+      appState.heroSliderValue = 55;
+      showToast('프로토타입이 초기 상태로 리셋되었습니다.');
+      switchTab('home');
+    }
+
+    // =========================================================================
+    // 8. QR 디지털 스토리 아카이브 모달 (수령인용 모바일 웹 뷰)
+    // =========================================================================
+    function openQRArchive(index) {
+      const data = index === -1 && appState.customCreatedOrder
+        ? appState.customCreatedOrder
+        : sampleStories[index >= 0 ? index : 0];
+
+      const modal = document.getElementById('qr-modal');
+      const content = document.getElementById('qr-modal-content');
+
+      content.innerHTML = `
+        <div class="flex items-center justify-between pb-3 border-b border-forest/10">
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded bg-forest text-oatmeal text-[10px] font-bold">QR ARCHIVE</span>
+            <span class="text-[11px] font-mono text-charcoal/60">${data.id}</span>
+          </div>
+          <button onclick="closeQRArchive()" class="w-8 h-8 rounded-full bg-oatmealDark flex items-center justify-center text-charcoal font-bold">✕</button>
+        </div>
+
+        <div class="mt-4">
+          <span class="text-[11px] font-bold text-terracotta">${data.shape} · ${data.date}</span>
+          <h2 class="text-[19px] font-bold text-forest leading-snug mt-0.5">${data.title}</h2>
+
+          <!-- 완성 화환 비주얼 -->
+          <div class="mt-3 h-[160px] rounded-2xl overflow-hidden border border-forest/10">
+            ${getWreathSVG(data.flowerType)}
+          </div>
+
+          <!-- 리본 문구 재현 -->
+          <div class="mt-3 p-3.5 rounded-2xl bg-forest text-oatmeal flex items-center justify-between gap-3">
+            <div>
+              <div class="text-[10px] text-mustard font-semibold">RIBBON MESSAGE</div>
+              <div class="font-batang text-[14px] font-bold mt-0.5">${data.ribbonMsg}</div>
+              <div class="text-[11px] text-oatmeal/70 mt-0.5">— ${data.ribbonSender}</div>
+            </div>
+          </div>
+
+          <!-- 물건의 서사 (Story) -->
+          <div class="mt-3 p-4 rounded-2xl bg-white border border-forest/10">
+            <div class="text-[11px] font-bold text-forest mb-1.5">이 꽃이 되기 전의 이야기</div>
+            <p class="font-batang text-[13px] text-charcoal leading-relaxed">${data.story}</p>
+            <div class="mt-3 pt-2.5 border-t border-oatmealDark">
+              <div class="text-[11px] text-charcoal/60 mb-1">원물 및 보존된 디테일</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="text-[11px] px-2 py-0.5 rounded-md bg-oatmeal text-charcoal font-semibold">${data.garments}</span>
+                ${data.details.map(d => `<span class="text-[11px] px-2 py-0.5 rounded-md bg-forest/10 text-forest font-semibold">${d}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- 순환 안내 -->
+          <div class="mt-3 p-3 rounded-xl bg-mustard/20 text-[11px] text-charcoal flex items-center justify-between">
+            <span><strong>행사 후 계획:</strong> ${data.remake}</span>
+          </div>
+        </div>
+      `;
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeQRArchive() {
+      document.getElementById('qr-modal').classList.add('hidden');
+    }
+
+    // 배경 클릭 시 모달 닫기
+    document.getElementById('qr-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'qr-modal') closeQRArchive();
+    });
+
+    // 앱 초기화 실행
+    window.onload = function () {
+      switchTab('home');
+    };
+  </script>
+</body>
+</html>
